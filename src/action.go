@@ -9,6 +9,7 @@ import (
 	"math"
   "fmt"
   "sync"
+  "errors"
   "gopkg.in/yaml.v2"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/cdproto/page"
@@ -73,23 +74,56 @@ func fullScreenshot(urlstr string, quality int64, res *[]byte) chromedp.Tasks {
 func dispatchAction(steps Steps, wg *sync.WaitGroup){
   defer wg.Done()
   fmt.Printf("Worker %d starting\n")
+  var isDone bool
+  var progress int = 0
   for i, v := range steps.Steps {
     fmt.Println("each step>>> ",i,  v)
-    selectAction(v)
+    err := selectAction(v)
+    if err != nil {
+      steps.Progress = i // recording finally step index.
+      //skip all and generate error log
+      fmt.Println("break here ")
+      break
+
+    }
+    progress += 1
+  }
+  fmt.Println("progress= ", progress, len(steps.Steps))
+  isDone = progress == len(steps.Steps)
+  if isDone {
+    steps.Status = "done"
+  }
+  cs, err := yaml.Marshal(&steps)
+  if err != nil {
+    panic("Marshal failure")
+  }
+
+  // f2 :=  strings.Replace(f, "input", "outputs", 3)
+  f2 := "./result.yaml"
+  err = ioutil.WriteFile(f2, cs, 0644)
+  if err != nil {
+    panic("Marshal failure")
   }
   fmt.Printf("Worker %d done\n")
 }
 
-func selectAction(step Step){
+func selectAction(step Step) error{
   switch step.Cmd {
   case "click":
       println("i is click")
+      //TODO do something ...
+      return nil
   case "screen":
       println("i is screen")
+      //TODO do something ...
+      return nil
   case "getText":
       println("i is getText")
+      return nil
+      //TODO do something ...
   default:
       println("type not found")
+      return errors.New("NotFound")
   }
 }
 
@@ -128,6 +162,8 @@ type Steps struct {
   Version string `yaml:"version"`
   GroupName string `yaml:"groupName"`
   Entrance string `yaml:"entrance,omitempty"`
+  Progress int `yaml:"progress,omitempty"`
+  Status string `yaml:"status,omitempty"`
   Steps []Step `yaml:"steps"`
 }
 
