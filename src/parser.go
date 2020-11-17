@@ -6,6 +6,7 @@ import (
     "gopkg.in/yaml.v2"
     "io/ioutil"
     "log"
+    "os"
 )
 
 
@@ -14,12 +15,13 @@ type step struct {
   Location string `yaml:"location"`
   Value string `yaml:"value,omitempty"`
   Name string `yaml:"name,omitempty"`
+  Desc string `yaml:"desc,omitempty"`
 }
 
 type steps struct {
   Version string `yaml:"version"`
   GroupName string `yaml:"groupName"`
-  Entrance string `yaml:"entrance"`
+  Entrance string `yaml:"entrance,omitempty"`
   Steps []step `yaml:"steps"`
 }
 
@@ -41,33 +43,65 @@ func generateSteps(f string) steps{
   c.getStep(f)
 
   extends_step_path_dash := c.Entrance
-  extends_step_path := strings.Replace(extends_step_path_dash, "__", "/", 3)
-  // fmt.Println("extends_step_path -->", c, extends_step_path, extends_step_path_dash)
+  extends_step_path :=  strings.Replace(extends_step_path_dash, "__", "/", 3)
   if extends_step_path == "" {
     return c
   }
-  p := extends_step_path + ".yaml"
-  // fmt.Println("do me")
-  // open the extends_path_file
+  p := "./input/" + extends_step_path + ".yaml"
   c1  := generateSteps(p)
   if c1.Entrance == extends_step_path_dash  {
     err := fmt.Sprintf("Recursion Entrance Error: You should never set entrance to yourself at [ %s ] [%s]", p, c1.Entrance)
     panic(err)
   }
-
-  // fmt.Println(c)
-  // fmt.Println("c2 steps -->, ", c1.Steps)
   all_steps := append(c1.Steps, c.Steps...)
-  // fmt.Println("all ---> ", all_steps)
   c.Steps = all_steps
-  // fmt.Println("c.Steps new -->", c.Steps)
   return c
 
 }
 
-func main() {
-  f := "step.yaml"
+func extendsSteps(f string) {
   c := generateSteps(f)
+  cs, err := yaml.Marshal(&c)
+  if err != nil {
+    panic("Marshal failure")
+  }
 
-  fmt.Println("c -->", c)
+  f2 :=  strings.Replace(f, "input", "outputs", 3)
+  err = ioutil.WriteFile(f2, cs, 0644)
+  if err != nil {
+    panic("Marshal failure")
+  }
+}
+
+func allSteps(d string) {
+  // filter files by configure the case here
+  // case about your product, which you want to test.
+  files, err := ioutil.ReadDir(d)
+  if err != nil {
+      log.Fatal(err)
+  }
+
+  for _, f := range files {
+          fi, err := os.Stat("./input/" +  f.Name())
+          if err != nil {
+              fmt.Println(err)
+              continue // skip dir
+
+          }
+          switch mode := fi.Mode(); {
+          case mode.IsDir():
+              // do directory stuff
+              fmt.Println("directory")
+          case mode.IsRegular():
+              // do file stuff
+              fmt.Println("file")
+              extendsSteps("./input/" + f.Name())
+          }
+
+
+  }
+}
+
+func main() {
+  allSteps("./input")
 }
