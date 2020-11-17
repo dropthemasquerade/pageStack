@@ -1,6 +1,6 @@
 version: 1.1.0_1.2.0
 groupName: google-home
-entrance: basic__home
+entrance: 
 steps:
   - cmd: click
     location: "#login"
