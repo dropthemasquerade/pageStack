@@ -7,10 +7,10 @@ steps:
   value: "122"
   name: screen01
   desc: "01"
-- cmd: click
+- cmd: getText
   location: '#login'
   value: "12"
   name: screen01
   desc: "02"
-- cmd: click
+- cmd: screen
   location: sss

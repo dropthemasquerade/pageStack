@@ -10,7 +10,7 @@ import (
 )
 
 
-type step struct {
+type Step struct {
   Cmd string `yaml:"cmd"`
   Location string `yaml:"location"`
   Value string `yaml:"value,omitempty"`
@@ -18,14 +18,14 @@ type step struct {
   Desc string `yaml:"desc,omitempty"`
 }
 
-type steps struct {
+type Steps struct {
   Version string `yaml:"version"`
   GroupName string `yaml:"groupName"`
   Entrance string `yaml:"entrance,omitempty"`
-  Steps []step `yaml:"steps"`
+  Steps []Step `yaml:"steps"`
 }
 
-func (c *steps) getStep(f string) *steps {
+func (c *Steps) getStep(f string) *Steps {
 
     yamlFile, err := ioutil.ReadFile(f)
     if err != nil {
@@ -38,8 +38,8 @@ func (c *steps) getStep(f string) *steps {
     return c
 }
 
-func generateSteps(f string) steps{
-  var c steps
+func generateSteps(f string) Steps{
+  var c Steps
   c.getStep(f)
 
   extends_step_path_dash := c.Entrance
