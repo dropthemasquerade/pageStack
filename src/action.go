@@ -71,24 +71,20 @@ func fullScreenshot(urlstr string, quality int64, res *[]byte) chromedp.Tasks {
 	}
 }
 
-func dispatchAction(steps Steps, wg *sync.WaitGroup){
+func dispatchAction(steps Steps, wg *sync.WaitGroup, ctx context.Context){
   defer wg.Done()
-  fmt.Printf("Worker %d starting\n")
   var isDone bool
   var progress int = 0
   for i, v := range steps.Steps {
-    fmt.Println("each step>>> ",i,  v)
-    err := selectAction(v)
+    err := selectAction(v, ctx)
     if err != nil {
       steps.Progress = i // recording finally step index.
       //skip all and generate error log
-      fmt.Println("break here ")
       break
 
     }
     progress += 1
   }
-  fmt.Println("progress= ", progress, len(steps.Steps))
   isDone = progress == len(steps.Steps)
   if isDone {
     steps.Status = "done"
@@ -98,7 +94,6 @@ func dispatchAction(steps Steps, wg *sync.WaitGroup){
     panic("Marshal failure")
   }
 
-  // f2 :=  strings.Replace(f, "input", "outputs", 3)
   f2 := "./result.yaml"
   err = ioutil.WriteFile(f2, cs, 0644)
   if err != nil {
@@ -107,7 +102,7 @@ func dispatchAction(steps Steps, wg *sync.WaitGroup){
   fmt.Printf("Worker %d done\n")
 }
 
-func selectAction(step Step) error{
+func selectAction(step Step, ctx context.Context) error{
   switch step.Cmd {
   case "click":
       println("i is click")
@@ -115,7 +110,19 @@ func selectAction(step Step) error{
       return nil
   case "screen":
       println("i is screen")
-      //TODO do something ...
+      // create context
+      // ctx, cancel := chromedp.NewContext(context.Background())
+      // defer cancel()
+
+      // capture screenshot of an element
+      var buf []byte
+      if err := chromedp.Run(ctx, elementScreenshot(`https://www.google.com/`, `#main`, &buf)); err != nil {
+    		log.Fatal(err)
+    	}
+      if err := ioutil.WriteFile(step.Name + ".png", buf, 0644); err != nil {
+    		log.Fatal(err)
+    	}
+
       return nil
   case "getText":
       println("i is getText")
@@ -176,20 +183,22 @@ func getSteps(d string) {
   }
   var wg sync.WaitGroup
   for _, f := range files {
-    // fmt.Println("lll", f)
     var c Steps
     p := "./outputs/" + f.Name()
     yamlFile, err := ioutil.ReadFile(p)
     if err != nil {
         log.Printf("yamlFile.Get err   #%v ", err)
     }
-    // fmt.Println("~~~", yamlFile)
     err = yaml.Unmarshal(yamlFile, &c)
     if err != nil {
         log.Fatalf("Unmarshal: %v", err)
     }
     wg.Add(1)
-    go dispatchAction(c, &wg)
+
+    ctx, cancel := chromedp.NewContext(context.Background())
+    defer cancel()
+    // a ctx life-time should be around the all steps.
+    go dispatchAction(c, &wg, ctx)
   }
   wg.Wait()
 }

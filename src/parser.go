@@ -102,6 +102,8 @@ func allSteps(d string) {
   }
 }
 
+
+
 func main() {
   allSteps("./input")
 }

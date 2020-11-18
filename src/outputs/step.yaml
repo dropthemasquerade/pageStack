@@ -14,5 +14,6 @@ steps:
   desc: "02"
 - cmd: screen
   location: sss
+  name: "myScreen"
 - cmd: notexits
   location: sss
